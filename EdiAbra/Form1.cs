@@ -37,7 +37,7 @@ namespace EdiAbra
             DokumentRecadvEdiAbra dok = new EdiAbra.DokumentRecadvEdiAbra();
             CdnApiBl api = new CdnApiBl();
             api.zaloguj();
-            api.PobierzListeLiniiWz(ediAbraBl.listaDokumentyRecadvEdi[0]);
+            api.procesujDokumentyEdi(ediAbraBl.listaDokumentyRecadvEdi);
             api.wyloguj();
         }
     }

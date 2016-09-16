@@ -19,14 +19,16 @@ namespace EdiAbra
     {
         Nieprzetworzony,
         DokumentOK,
-        BrakwCdn
+        BrakwCdn,
+        Bledny
     }
 
     public enum result
     {
         OK,
         ERROR,
-        BRAK_SESJI
+        BRAK_SESJI,
+        BRAK_DOKUMENTOW
     }
    
 }

@@ -6,11 +6,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
-
+// Klasa przechowuje strukturę i dane dokumentu EDI Abra
 namespace EdiAbra
 {
     public class DokumentRecadvEdiAbra // Dane z nagłówka dokumentu
     {
+        public StatusDokumentEdi statusDokumentu { get; set; }
         public string nazwaPliku { get; set; }
         public XmlDocument dokumentXml { get; set; }
         public string glnOdbiorca { get; set; }
@@ -31,6 +32,7 @@ namespace EdiAbra
 
         public DokumentRecadvEdiAbra()
         {
+            statusDokumentu = StatusDokumentEdi.DokumentOK;
             indeksy = new List<LiniaIndeksu>();
         }
 
@@ -64,6 +66,7 @@ namespace EdiAbra
         public int GidLp { get; set; }
         public decimal IloscCdn { get; set; }
         public StatusLiniiDokumentEdi StatusLinii {get;set;}
+        public string EanCdn { get; set; }
     }
 
 }

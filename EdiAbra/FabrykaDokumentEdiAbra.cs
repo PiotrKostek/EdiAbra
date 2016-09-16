@@ -82,6 +82,7 @@ namespace EdiAbra
             catch(Exception Ex)
             {
                 MessageBox.Show(Ex.Message +" "+dokumentAbra.nazwaPliku, "Błąd importu pliku");
+                dokumentAbra.statusDokumentu = StatusDokumentEdi.Bledny;
                 return false;
             }
         }

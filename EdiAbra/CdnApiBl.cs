@@ -62,14 +62,22 @@ namespace EdiAbra
 
         }
 
-        result procesujDokumentEdi(DokumentRecadvEdiAbra dokumentEdi)
+        public result procesujDokumentyEdi(List<DokumentRecadvEdiAbra> dokumentyEdi)
         {
-            if (uzupelnijDaneDokumentuEdi(dokumentEdi) == result.OK)
+            result wynik = result.OK;
+            if (dokumentyEdi.Count > 0)
             {
-                uzupelnijDaneLiniiWz(dokumentEdi);
-                return result.OK;
-            }
-            else return result.ERROR;
+                foreach (DokumentRecadvEdiAbra dokumentEdi in dokumentyEdi)
+                {
+                    if (uzupelnijDaneDokumentuEdi(dokumentEdi) == result.OK)
+                    {
+                        uzupelnijDaneLiniiWz(dokumentEdi);
+                    }
+                    else wynik=result.ERROR;
+                }
+             }
+            else wynik=result.BRAK_DOKUMENTOW;
+            return wynik;
         }
 
         result uzupelnijDaneDokumentuEdi(DokumentRecadvEdiAbra dokumentEdi)
@@ -109,7 +117,7 @@ namespace EdiAbra
             }
             else return result.BRAK_SESJI;
         }
-        result uzupelnijDaneLiniiWz (DokumentRecadvEdiAbra dokumentEdi) // Wyciągnięcie listy linii WZtki CDNowej o numerze z dokumentu EDI
+        result uzupelnijDaneLiniiWz(DokumentRecadvEdiAbra dokumentEdi) // Wyciągnięcie listy linii WZtki CDNowej o numerze z dokumentu EDI
         {
             //List<LiniaWzCdn> listaLinii= new List<LiniaWzCdn>();
 
@@ -120,7 +128,7 @@ namespace EdiAbra
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = con;
                 cmd.CommandText = "SELECT TrE_GIDTyp,TrE_GIDNumer,TrE_GIDLp,Twr_Ean,TrE_Ilosc  FROM cdn.TraNag tra inner join cdn.TraElem elem on tra.TrN_GIDNumer = elem.TrE_GIDNumer and tra.TrN_GIDTyp = elem.TrE_GIDTyp left join cdn.TwrKarty twr on elem.TrE_TwrNumer=twr.Twr_GIDNumer "
-                    + "where tra.TrN_TrNNumer =" + dokumentEdi.numerWz + " and TrN_TrNRok =" + dokumentEdi.rokWz+" and TrN_TrNSeria ='"+ dokumentEdi.seriaWz +"' and TrN_GIDTyp = 2001 ";
+                    + "where tra.TrN_TrNNumer =" + dokumentEdi.numerWz + " and TrN_TrNRok =" + dokumentEdi.rokWz + " and TrN_TrNSeria ='" + dokumentEdi.seriaWz + "' and TrN_GIDTyp = 2001 ";
 
                 DataTable tbLinieWz = new DataTable();
 
@@ -129,35 +137,39 @@ namespace EdiAbra
                 //tbLinieWz.Load(reader);
                 SqlDataReader reader = cmd.ExecuteReader();
                 tbLinieWz.Load(reader);
-                
-                    if (tbLinieWz.Rows.Count>0 & dokumentEdi.indeksy.Count>0 & (tbLinieWz.Rows.Count == dokumentEdi.indeksy.Count )) // Jeśli ilość indeksów w dokumencie EDI i dokumencie CDN zgodne i większe niż 0
-                    {
-                        foreach(LiniaIndeksu wierszIndeksu  in dokumentEdi.indeksy)
-                    {
-                        //var liniaEdi = dokumentEdi.indeksy.SingleOrDefault(ean=>(ean row["Twr_Ean"])
-                        wierszIndeksu.GidTyp = Convert.ToInt32(row["TrE_GIDTyp"]);
-                        wierszIndeksu.GidNumer = Convert.ToInt32(row["TrE_GIDNumer"]);
-                        wierszIndeksu.GidLp = Convert.ToInt32(row["TrE_GIDLp"]);
-                        wierszIndeksu.EanCdn = row["Twr_Ean"].ToString();
-                        liniaWzCdn.
-                        listaLinii.Add(liniaWzCdn);
-                    }
- 
-                    }
                 con.Close();
-                
-            }
-            if (listaLinii.Count > 0) return listaLinii;
-            else return null;
-        }
 
-        public void dopasujLinieEdiDoCdn(List<LiniaWzCdn> linieCdn, List<LiniaIndeksu> linieEdi)
-        {
-            if(linieCdn.Count==linieEdi.Count)
-            {
-                return 
+                if (tbLinieWz.Rows.Count > 0 & dokumentEdi.indeksy.Count > 0 & (tbLinieWz.Rows.Count == dokumentEdi.indeksy.Count)) // Jeśli ilość indeksów w dokumencie EDI i dokumencie CDN zgodne i większe niż 0
+                {
+                    foreach (LiniaIndeksu wierszIndeksu in dokumentEdi.indeksy)
+                    {
+                        try
+                        {
+                            var liniaEdi = (from wiersz in tbLinieWz.AsEnumerable() where (wiersz["Twr_Ean"].ToString() == wierszIndeksu.ean && Decimal.Compare(Convert.ToDecimal(wiersz["TrE_Ilosc"]),wierszIndeksu.iloscOtrzymana)==0) select wiersz).First();//.SingleOrDefault();
+                            
+                            //var liniaEdi = dokumentEdi.indeksy.SingleOrDefault(ean=>(ean row["Twr_Ean"])
+                            wierszIndeksu.GidTyp = Convert.ToInt32(liniaEdi["TrE_GIDTyp"]);
+                            wierszIndeksu.GidNumer = Convert.ToInt32(liniaEdi["TrE_GIDNumer"]);
+                            wierszIndeksu.GidLp = Convert.ToInt32(liniaEdi["TrE_GIDLp"]);
+                            wierszIndeksu.EanCdn = liniaEdi["Twr_Ean"].ToString();
+                            wierszIndeksu.StatusLinii = StatusLiniiDokumentEdi.LiniaOK;
+                            //var row=tbLinieWz.Select("TrE_GIDNumer=" + wierszIndeksu.GidNumer + " AND TrE_GIDLp=" + wierszIndeksu.GidLp).Single();
+                            liniaEdi.Delete();
+                            tbLinieWz.AcceptChanges();
+                        }
+                        catch(Exception ex)
+                        {
+                            wierszIndeksu.StatusLinii = StatusLiniiDokumentEdi.BrakwCdn;
+                            dokumentEdi.statusDokumentu = StatusDokumentEdi.Bledny;
+                        }
+
+                    }
+
+                }
+
+
             }
-            else return 
+            return result.OK;
         }
         public int dodajAtrybut()
         {
